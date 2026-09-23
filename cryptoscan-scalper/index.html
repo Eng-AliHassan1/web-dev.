@@ -32,7 +32,7 @@ h1{font-size:22px;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:4px
 <div>
 <div class="brand"><div class="mark">CS</div><div><h1>CRYPTOSCAN / SCALPER GATE</h1><div class="sub">Live Binance Spot scanner — strict multi-factor confirmation</div></div></div>
 </div>
-<div class="actions"><button id="scan" class="btn primary">Scan market</button><button id="stop" class="btn" disabled>Stop</button></div>
+<div class="actions"><button id="scan" class="btn primary">Scan market</button><button id="stop" class="btn" disabled>Stop</button><button id="auto" class="btn">Auto: OFF</button></div>
 </header>
 <div class="grid">
 <aside class="panel controls">
@@ -44,8 +44,8 @@ h1{font-size:22px;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:4px
 <div class="field"><label>Volume ratio ≥</label><input id="vol" type="number" min=".5" step=".1" value="1.2"></div>
 <div class="field"><label>Minimum ATR(14) %</label><input id="atr" type="number" min="0" step=".05" value=".15"></div>
 <div class="field"><label>Entry timeframe</label><select id="entryTf"><option value="5m">5m</option><option value="15m">15m</option></select></div>
-<div class="switch"><input id="newsGate" type="checkbox" checked><label for="newsGate">Require manual “no major news” confirmation</label></div>
-<div class="switch" style="margin-top:8px"><input id="btcGate" type="checkbox" checked><label for="btcGate">Require BTC 1H regime alignment</label></div>
+<div class="switch"><input id="newsGate" type="checkbox" checked><label for="newsGate">I confirm no major scheduled news</label></div>
+<div class="switch" style="margin-top:8px"><input id="btcGate" type="checkbox" checked><label for="btcGate">Require BTC 1H regime alignment</label></div><div class="switch" style="margin-top:8px"><input id="autoRefresh" type="checkbox"><label for="autoRefresh">Auto-refresh every 60 seconds</label></div>
 <div class="status"><span id="dot" class="dot"></span><span id="status">Ready</span></div>
 <div class="note">Strict mode only surfaces setups passing every enabled gate. This is a market-data scanner, not an execution or profit guarantee.</div>
 </aside>
@@ -59,7 +59,7 @@ h1{font-size:22px;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:4px
 </div>
 <div class="legend"><span>HTF = 1H trend</span><span>STRUCT = 15M market structure</span><span>SWEEP = liquidity sweep</span><span>VOL = volume expansion</span><span>MOM = RSI/momentum</span><span>ENTRY = lower-TF confirmation</span><span>R:R includes fees/slippage</span></div>
 <div class="tableWrap"><table class="table"><thead><tr>
-<th>PAIR</th><th>DIR</th><th>PRICE</th><th>ENTRY</th><th>SL</th><th>TP</th><th>R:R</th><th>ATR%</th><th>CHECKS</th><th>REASON</th>
+<th>PAIR</th><th>DIR</th><th>PRICE</th><th>ENTRY</th><th>SL</th><th>TP</th><th>R:R</th><th>ATR%</th><th>CHECKS</th><th>REASON</th><th>CHART</th>
 </tr></thead><tbody id="rows"><tr><td colspan="10" style="color:#64748b">Press “Scan market” to start.</td></tr></tbody></table></div>
 <div class="note">Data source: Binance public market-data endpoints. The scanner uses closed candles for confirmations where possible. News/event risk is not reliably available from these market-data endpoints, so the news gate is intentionally manual.</div>
 </main>
@@ -67,7 +67,7 @@ h1{font-size:22px;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:4px
 </div>
 <script>
 const API='https://api.binance.com';
-let aborter=null;
+let aborter=null; let refreshTimer=null;
 const $=id=>document.getElementById(id);
 $('universe').oninput=e=>$('univVal').textContent=e.target.value;
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
@@ -106,7 +106,7 @@ function analyze(symbol,k1,k15,ke,btcBull){
   else {sl=Math.max(priorHigh,+last[2])+a*.15; const risk=sl-entry; tp=entry-risk*(+$('rr').value); if(tp>=entry*(1-fee)) return {symbol,pass:false,checks:[],reason:'Target too small after costs',price:p,atrPct};}
   const gross=Math.abs(tp-entry)/Math.abs(entry-sl), netReward=Math.abs(tp-entry)/entry-fee;
   const btcOk=!$('btcGate').checked || (dir==='LONG'?btcBull:!btcBull);
-  const pass=atrPct>=+$('atr').value&&volRatio>=+$('vol').value&&btcOk&&netReward>Math.abs(entry-sl)/entry*(+$('rr').value-0.05);
+  const newsOk=!$('newsGate').checked || $('newsGate').checked; const pass=newsOk&&atrPct>=+$('atr').value&&volRatio>=+$('vol').value&&btcOk&&netReward>Math.abs(entry-sl)/entry*(+$('rr').value-0.05);
   const checks=[true,dir==='LONG'?sweepLong:sweepShort,dir==='LONG'?structLong:structShort,volRatio>=+$('vol').value,dir==='LONG'?longMom:shortMom,dir==='LONG'?entryLong:entryShort,btcOk,atrPct>=+$('atr').value];
   return {symbol,pass,dir,price:p,entry,sl,tp,rr:gross,atrPct,volRatio,checks,reason:pass?'All enabled gates pass':(!btcOk?'BTC regime conflict':!checks[3]?'Low volume':!checks[7]?'Low volatility':'Confirmation incomplete')};
 }
@@ -140,15 +140,19 @@ async function scan(){
 }
 function render(rows){
   const body=$('rows');
-  if(!rows.length){body.innerHTML='<tr><td colspan="10" style="color:#64748b">No setups currently pass every enabled gate. That is a valid scanner result.</td></tr>';return}
+  if(!rows.length){body.innerHTML='<tr><td colspan="11" style="color:#64748b">No setups currently pass every enabled gate. That is a valid scanner result.</td></tr>';return}
   body.innerHTML=rows.map(x=>'<tr>'+
   '<td class="sym">'+x.symbol+'</td><td><span class="pill '+(x.dir==='LONG'?'long':'short')+'">'+x.dir+'</span></td>'+
   '<td class="price">'+fmt(x.price)+'</td><td>'+fmt(x.entry)+'</td><td>'+fmt(x.sl)+'</td><td>'+fmt(x.tp)+'</td>'+
   '<td>'+x.rr.toFixed(2)+'</td><td>'+x.atrPct.toFixed(2)+'%</td>'+
   '<td><div class="checks">'+x.checks.map((c,i)=>'<span class="c '+(c?'y':'n')+'" title="'+['HTF','SWEEP','STRUCT','VOL','MOM','ENTRY','BTC','ATR'][i]+'">'+(c?'✓':'×')+'</span>').join('')+'</div></td>'+
-  '<td>'+x.reason+'</td></tr>').join('');
+  '<td>'+x.reason+'</td><td><a target="_blank" rel="noopener" href="https://www.tradingview.com/chart/?symbol=BINANCE%3A'+x.symbol+'" style="color:var(--blue);text-decoration:none">OPEN ↗</a></td></tr>').join('');
 }
-$('scan').onclick=scan;$('stop').onclick=()=>aborter?.abort();
+$('scan').onclick=()=>{if($('newsGate').checked && !confirm('Confirm: you have checked major scheduled news/events and believe there is no major event risk for this scan. Continue?')) return; scan();};
+$('stop').onclick=()=>aborter?.abort();
+$('auto').onclick=()=>{const on=!refreshTimer; if(on){$('auto').textContent='Auto: ON';$('auto').classList.add('primary');refreshTimer=setInterval(()=>{if(!aborter) scan();},60000)}else{clearInterval(refreshTimer);refreshTimer=null;$('auto').textContent='Auto: OFF';$('auto').classList.remove('primary')}};
+$('autoRefresh').onchange=e=>{if(e.target.checked&&!refreshTimer){$('auto').click()}else if(!e.target.checked&&refreshTimer){$('auto').click()}};
+
 </script>
 </body>
 </html>
