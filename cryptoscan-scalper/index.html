@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>CRYPTOSCAN — Scalper Gate</title>
+<style>
+:root{--bg:#080a0d;--panel:#0e1116;--panel2:#141820;--line:#252c36;--text:#f1f5f9;--muted:#94a3b8;--dim:#64748b;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#38bdf8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,select{font:inherit}button{cursor:pointer}
+.shell{max-width:1500px;margin:auto;padding:24px}
+.top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:22px}
+.brand{display:flex;gap:12px;align-items:center}.mark{width:38px;height:38px;border:1px solid var(--line);display:grid;place-items:center;border-radius:10px;font-weight:800;color:var(--blue)}
+h1{font-size:22px;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:4px}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px 13px;border-radius:8px}.btn.primary{background:#102536;border-color:#1f5d7a}.btn:disabled{opacity:.5;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:16px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.controls{padding:16px}.controls h2,.results h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 14px;color:#cbd5e1}
+.field{margin-bottom:14px}.field label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px}.field input,.field select{width:100%;background:#090c10;border:1px solid var(--line);color:var(--text);padding:9px;border-radius:7px}
+.switch{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:12px}.switch input{accent-color:var(--green)}
+.status{display:flex;gap:10px;align-items:center;margin:10px 0;color:var(--muted);font-size:12px}.dot{width:8px;height:8px;border-radius:50%;background:var(--dim)}.dot.live{background:var(--green);box-shadow:0 0 10px #22c55e66}
+.results{padding:16px;min-width:0}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}.stat{background:var(--panel2);border:1px solid var(--line);padding:12px;border-radius:9px}.stat .v{font-size:20px;font-weight:700}.stat .l{font-size:11px;color:var(--muted);margin-top:3px}
+.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:9px}.table{width:100%;border-collapse:collapse;min-width:1000px}.table th,.table td{padding:10px;border-bottom:1px solid #1b2028;text-align:left;font-size:12px;white-space:nowrap}.table th{background:#11151b;color:var(--muted);font-weight:600;position:sticky;top:0}.table tr:last-child td{border-bottom:0}.sym{font-weight:750}.price{font-variant-numeric:tabular-nums}.pill{display:inline-flex;padding:4px 7px;border-radius:999px;border:1px solid var(--line);font-size:10px;font-weight:700}.long{color:var(--green);border-color:#1f6d3c;background:#0b1b12}.short{color:var(--red);border-color:#6f2424;background:#1b0c0c}.wait{color:var(--amber);border-color:#6b4b15;background:#1b1508}
+.checks{display:flex;gap:4px}.c{width:18px;height:18px;border-radius:4px;display:grid;place-items:center;font-size:10px;border:1px solid var(--line);color:var(--dim)}.c.y{color:var(--green);border-color:#245d3b;background:#0d1b12}.c.n{color:var(--red);border-color:#5e2626;background:#1a0d0d}
+.note{margin-top:12px;color:var(--dim);font-size:11px;line-height:1.5}.legend{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;color:var(--muted);font-size:11px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.top{flex-direction:column}.actions{width:100%}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="top">
+<div>
+<div class="brand"><div class="mark">CS</div><div><h1>CRYPTOSCAN / SCALPER GATE</h1><div class="sub">Live Binance Spot scanner — strict multi-factor confirmation</div></div></div>
+</div>
+<div class="actions"><button id="scan" class="btn primary">Scan market</button><button id="stop" class="btn" disabled>Stop</button></div>
+</header>
+<div class="grid">
+<aside class="panel controls">
+<h2>Scanner rules</h2>
+<div class="field"><label>Universe <span id="univVal">25</span> coins</label><input id="universe" type="range" min="10" max="50" value="25"></div>
+<div class="field"><label>Minimum R:R</label><input id="rr" type="number" min="1" step=".1" value="1.8"></div>
+<div class="field"><label>Fee / side %</label><input id="fee" type="number" min="0" step=".005" value=".075"></div>
+<div class="field"><label>Slippage / side %</label><input id="slip" type="number" min="0" step=".005" value=".05"></div>
+<div class="field"><label>Volume ratio ≥</label><input id="vol" type="number" min=".5" step=".1" value="1.2"></div>
+<div class="field"><label>Minimum ATR(14) %</label><input id="atr" type="number" min="0" step=".05" value=".15"></div>
+<div class="field"><label>Entry timeframe</label><select id="entryTf"><option value="5m">5m</option><option value="15m">15m</option></select></div>
+<div class="switch"><input id="newsGate" type="checkbox" checked><label for="newsGate">Require manual “no major news” confirmation</label></div>
+<div class="switch" style="margin-top:8px"><input id="btcGate" type="checkbox" checked><label for="btcGate">Require BTC 1H regime alignment</label></div>
+<div class="status"><span id="dot" class="dot"></span><span id="status">Ready</span></div>
+<div class="note">Strict mode only surfaces setups passing every enabled gate. This is a market-data scanner, not an execution or profit guarantee.</div>
+</aside>
+<main class="panel results">
+<h2>Qualified setups</h2>
+<div class="stats">
+<div class="stat"><div class="v" id="qualified">0</div><div class="l">ALL GATES PASS</div></div>
+<div class="stat"><div class="v" id="scanned">0</div><div class="l">SCANNED</div></div>
+<div class="stat"><div class="v" id="btc">—</div><div class="l">BTC 1H REGIME</div></div>
+<div class="stat"><div class="v" id="updated">—</div><div class="l">UPDATED</div></div>
+</div>
+<div class="legend"><span>HTF = 1H trend</span><span>STRUCT = 15M market structure</span><span>SWEEP = liquidity sweep</span><span>VOL = volume expansion</span><span>MOM = RSI/momentum</span><span>ENTRY = lower-TF confirmation</span><span>R:R includes fees/slippage</span></div>
+<div class="tableWrap"><table class="table"><thead><tr>
+<th>PAIR</th><th>DIR</th><th>PRICE</th><th>ENTRY</th><th>SL</th><th>TP</th><th>R:R</th><th>ATR%</th><th>CHECKS</th><th>REASON</th>
+</tr></thead><tbody id="rows"><tr><td colspan="10" style="color:#64748b">Press “Scan market” to start.</td></tr></tbody></table></div>
+<div class="note">Data source: Binance public market-data endpoints. The scanner uses closed candles for confirmations where possible. News/event risk is not reliably available from these market-data endpoints, so the news gate is intentionally manual.</div>
+</main>
+</div>
+</div>
+<script>
+const API='https://api.binance.com';
+let aborter=null;
+const $=id=>document.getElementById(id);
+$('universe').oninput=e=>$('univVal').textContent=e.target.value;
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+async function get(path,params={}){
+  const u=new URL(API+path); Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));
+  const r=await fetch(u,{signal:aborter?.signal}); if(!r.ok) throw new Error(r.status+' '+r.statusText); return r.json();
+}
+function closes(k){return k.slice(0,-1).map(x=>+x[4])}
+function highs(k){return k.slice(0,-1).map(x=>+x[2])}
+function lows(k){return k.slice(0,-1).map(x=>+x[3])}
+function vols(k){return k.slice(0,-1).map(x=>+x[5])}
+function ema(a,n){let e=a[0],m=2/(n+1); for(let i=1;i<a.length;i++)e=a[i]*m+e*(1-m); return e}
+function rsi(a,n=14){let g=0,l=0; for(let i=1;i<=n;i++){let d=a[i]-a[i-1];g+=Math.max(d,0);l+=Math.max(-d,0)} let ag=g/n,al=l/n; for(let i=n+1;i<a.length;i++){let d=a[i]-a[i-1];ag=(ag*(n-1)+Math.max(d,0))/n;al=(al*(n-1)+Math.max(-d,0))/n} return al===0?100:100-100/(1+ag/al)}
+function atr(k,n=14){let t=[]; for(let i=1;i<k.length-1;i++){const h=+k[i][2],l=+k[i][3],pc=+k[i-1][4];t.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc)))} return t.slice(-n).reduce((a,b)=>a+b,0)/Math.min(n,t.length)}
+function fmt(p){if(p>=100)return p.toFixed(2);if(p>=1)return p.toFixed(4);if(p>=.1)return p.toFixed(5);return p.toFixed(7)}
+function avg(a){return a.reduce((x,y)=>x+y,0)/a.length}
+function analyze(symbol,k1,k15,ke,btcBull){
+  const c1=closes(k1), h1=highs(k1), l1=lows(k1), c15=closes(k15), h15=highs(k15), l15=lows(k15), ce=closes(ke);
+  const p=ce.at(-1), e20=ema(c1.slice(-60),20), e50=ema(c1.slice(-80),50), r=rsi(c1), a=atr(k15), atrPct=a/p*100;
+  const h1bull=p>e20 && e20>e50, h1bear=p<e20 && e20<e50;
+  const priorLow=Math.min(...l15.slice(-21,-1)), priorHigh=Math.max(...h15.slice(-21,-1));
+  const last=k15.at(-2), prev=k15.at(-3), sweepLong=+last[3]<priorLow && +last[4]>priorLow, sweepShort=+last[2]>priorHigh && +last[4]<priorHigh;
+  const structLong=+last[4]>Math.max(...h15.slice(-5,-2)), structShort=+last[4]<Math.min(...l15.slice(-5,-2));
+  const v=vols(k15), volRatio=v.at(-1)/avg(v.slice(-21,-1));
+  const longMom=r>=50&&r<=72, shortMom=r<=50&&r>=28;
+  const eLast=ke.at(-2), ePrev=ke.at(-3);
+  const entryLong=+eLast[4]>Math.max(...ke.slice(-5,-2).map(x=>+x[2])) && +eLast[4]>+eLast[1];
+  const entryShort=+eLast[4]<Math.min(...ke.slice(-5,-2).map(x=>+x[3])) && +eLast[4]<+eLast[1];
+  let dir=null;
+  if(h1bull&&sweepLong&&structLong&&longMom&&entryLong)dir='LONG';
+  if(h1bear&&sweepShort&&structShort&&shortMom&&entryShort)dir='SHORT';
+  if(!dir) return {symbol,pass:false,checks:[h1bull||h1bear,!!(sweepLong||sweepShort),!!(structLong||structShort),volRatio>=+$('vol').value,longMom||shortMom,entryLong||entryShort],reason:'Waiting for full alignment',price:p,atrPct};
+  const fee=(+$('fee').value+$('slip').value)*2/100;
+  let entry=p, sl, tp;
+  if(dir==='LONG'){sl=Math.min(priorLow,+last[3])-a*.15; const risk=entry-sl; tp=entry+risk*(+$('rr').value); if(tp<=entry*(1+fee)) return {symbol,pass:false,checks:[],reason:'Target too small after costs',price:p,atrPct};}
+  else {sl=Math.max(priorHigh,+last[2])+a*.15; const risk=sl-entry; tp=entry-risk*(+$('rr').value); if(tp>=entry*(1-fee)) return {symbol,pass:false,checks:[],reason:'Target too small after costs',price:p,atrPct};}
+  const gross=Math.abs(tp-entry)/Math.abs(entry-sl), netReward=Math.abs(tp-entry)/entry-fee;
+  const btcOk=!$('btcGate').checked || (dir==='LONG'?btcBull:!btcBull);
+  const pass=atrPct>=+$('atr').value&&volRatio>=+$('vol').value&&btcOk&&netReward>Math.abs(entry-sl)/entry*(+$('rr').value-0.05);
+  const checks=[true,dir==='LONG'?sweepLong:sweepShort,dir==='LONG'?structLong:structShort,volRatio>=+$('vol').value,dir==='LONG'?longMom:shortMom,dir==='LONG'?entryLong:entryShort,btcOk,atrPct>=+$('atr').value];
+  return {symbol,pass,dir,price:p,entry,sl,tp,rr:gross,atrPct,volRatio,checks,reason:pass?'All enabled gates pass':(!btcOk?'BTC regime conflict':!checks[3]?'Low volume':!checks[7]?'Low volatility':'Confirmation incomplete')};
+}
+async function scan(){
+  aborter=new AbortController(); $('scan').disabled=true;$('stop').disabled=false;$('dot').className='dot live';$('status').textContent='Loading market universe…';
+  try{
+    const [info,tickers,btcK]=await Promise.all([get('/api/v3/exchangeInfo'),get('/api/v3/ticker/24hr'),get('/api/v3/klines',{symbol:'BTCUSDT',interval:'1h',limit:100})]);
+    const allowed=new Set(info.symbols.filter(s=>s.status==='TRADING'&&s.quoteAsset==='USDT'&&!/(UP|DOWN|BULL|BEAR)$/.test(s.baseAsset)).map(s=>s.symbol));
+    const universe=tickers.filter(t=>allowed.has(t.symbol)).sort((a,b)=>+b.quoteVolume-+a.quoteVolume).slice(0,+$('universe').value).map(t=>t.symbol);
+    const bc=closes(btcK),be20=ema(bc.slice(-60),20),be50=ema(bc.slice(-80),50),btcBull=bc.at(-1)>be20&&be20>be50;
+    $('btc').textContent=btcBull?'BULL':'BEAR'; $('btc').style.color=btcBull?'var(--green)':'var(--red)';
+    const results=[];
+    for(let i=0;i<universe.length;i++){
+      $('status').textContent='Scanning '+(i+1)+' / '+universe.length+' — '+universe[i];
+      const s=universe[i];
+      try{
+        const [k1,k15,ke]=await Promise.all([
+          get('/api/v3/klines',{symbol:s,interval:'1h',limit:100}),
+          get('/api/v3/klines',{symbol:s,interval:'15m',limit:80}),
+          get('/api/v3/klines',{symbol:s,interval:$('entryTf').value,limit:60})
+        ]);
+        const x=analyze(s,k1,k15,ke,btcBull); results.push(x);
+      }catch(e){}
+      await sleep(40);
+    }
+    results.sort((a,b)=>(b.pass?1:0)-(a.pass?1:0)||(b.rr||0)-(a.rr||0));
+    render(results.filter(x=>x.pass)); $('scanned').textContent=results.length; $('qualified').textContent=results.filter(x=>x.pass).length;
+    $('updated').textContent=new Date().toLocaleTimeString(); $('status').textContent='Scan complete';
+  }catch(e){$('status').textContent=e.name==='AbortError'?'Stopped':e.message; $('dot').className='dot'}
+  finally{$('scan').disabled=false;$('stop').disabled=true;aborter=null}
+}
+function render(rows){
+  const body=$('rows');
+  if(!rows.length){body.innerHTML='<tr><td colspan="10" style="color:#64748b">No setups currently pass every enabled gate. That is a valid scanner result.</td></tr>';return}
+  body.innerHTML=rows.map(x=>'<tr>'+
+  '<td class="sym">'+x.symbol+'</td><td><span class="pill '+(x.dir==='LONG'?'long':'short')+'">'+x.dir+'</span></td>'+
+  '<td class="price">'+fmt(x.price)+'</td><td>'+fmt(x.entry)+'</td><td>'+fmt(x.sl)+'</td><td>'+fmt(x.tp)+'</td>'+
+  '<td>'+x.rr.toFixed(2)+'</td><td>'+x.atrPct.toFixed(2)+'%</td>'+
+  '<td><div class="checks">'+x.checks.map((c,i)=>'<span class="c '+(c?'y':'n')+'" title="'+['HTF','SWEEP','STRUCT','VOL','MOM','ENTRY','BTC','ATR'][i]+'">'+(c?'✓':'×')+'</span>').join('')+'</div></td>'+
+  '<td>'+x.reason+'</td></tr>').join('');
+}
+$('scan').onclick=scan;$('stop').onclick=()=>aborter?.abort();
+</script>
+</body>
+</html>
